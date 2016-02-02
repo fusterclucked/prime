@@ -1,0 +1,52 @@
+#include <lmdb.h>
+
+#include "lib.h"
+
+#include "console.h"
+
+@prime_ls: bool (prime_error_t* error)
+
+	success: bool = false
+	env: MDB_env* = NULL
+	txn: MDB_txn* = NULL
+	db: MDB_dbi = NULL
+	cursor: MDB_cursor* = NULL
+
+	if errno = mdb_env_create (&env)
+		error->site = "open database context"
+		goto done
+
+	if errno = mdb_env_open (env, ".prime", MDB_NOSUBDIR | MDB_RDONLY, 0644)
+		if errno is ENOENT
+			success = true
+		else
+			error->site = "open database file"
+		goto done
+
+	if errno = mdb_txn_begin (env, NULL, 0, &txn)
+		error->site = "open transaction"
+		goto done
+
+	if errno = mdb_dbi_open (txn, NULL, 0, &db)
+		error->site = "open database handle"
+		goto done
+
+	if errno = mdb_cursor_open (txn, db, &cursor)
+		error->site = "open database cursor"
+		goto done
+
+	key: struct MDB_val
+
+	until errno = mdb_cursor_get (cursor, &key, NULL, MDB_NEXT)
+		console_output "%.*s", key.mv_size, key.mv_data
+
+	unless errno is MDB_NOTFOUND
+		error->site = "read current item"
+		goto done
+
+	success = true
+
+done:
+	mdb_cursor_close cursor
+	mdb_env_close env
+	return success
