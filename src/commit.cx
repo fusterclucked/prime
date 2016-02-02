@@ -1,0 +1,56 @@
+#include <fcntl.h>
+#include <fts.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include "lib.h"
+
+#include "db.h"
+
+@prime_commit: void ()
+
+	db: prime_db_t
+
+	do
+		try prime_db_open (&db), 0
+
+		fts: FTS*
+
+		do
+			try fts = fts_open (char* []){ ".", NULL }, 0, NULL
+
+			entry: FTSENT*
+
+			for ;;
+				try entry = fts_read fts
+
+				unless entry
+					break
+
+				unless entry->fts_info == FTS_F
+					continue
+
+				name: char* = entry->fts_name
+
+				if name[0] == '.'
+					continue
+
+				path: char* = entry->fts_path
+				key: struct MDB_val = { .mv_size = (strlen path), .mv_data = path }
+				data: struct MDB_val = { .mv_size = entry->fts_statp->st_size }
+
+				try catch mdb_put db.txn, db.dbi, &key, &data, MDB_RESERVE
+
+				file: int = -1
+
+				do
+					try file = open name, O_RDONLY
+					try read file, data.mv_data, data.mv_size
+
+				finally close file
+
+			try catch mdb_txn_commit db.txn
+
+		finally fts_close fts
+
+	finally prime_db_close (&db)

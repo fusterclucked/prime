@@ -43,6 +43,8 @@ test: | .obj
 .bin:
 	mkdir $@
 
+# _BSD_SOURCE needed for types in fts.h
+
 .bin/prime: \
 /usr/lib/x86_64-linux-gnu/liblmdb.so.0 \
 /usr/include/lmdb.h \
@@ -51,6 +53,7 @@ $(HEADERS) $(SOURCES) \
 	gcc \
 		-std=c11 -Werror -Wpedantic -Wall -Wextra \
 		-fdiagnostics-color=auto --coverage \
+		-D _BSD_SOURCE \
 		$(foreach i,$(INCLUDES),-include $(i).h) \
 		-I lib/embrace \
 		-o $@ $(SOURCES) \

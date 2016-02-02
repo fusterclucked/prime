@@ -22,3 +22,12 @@
 #define structdef(name)
 	typedef struct name name##_t
 	struct name
+
+// TODO not needed once prime_db is fully encapsulated
+#include <lmdb.h>
+
+structdef (prime_db)
+	env: MDB_env*
+	txn: MDB_txn*
+	dbi: MDB_dbi
+/**/

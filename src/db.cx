@@ -1,0 +1,22 @@
+#include <lmdb.h>
+
+#include "lib.h"
+
+@prime_db_open: void (prime_db_t* this, unsigned int flags)
+
+	do
+		try catch mdb_env_create (&this->env)
+
+		if catch mdb_env_open this->env, ".prime", MDB_NOSUBDIR | flags, 0644
+			if errno == ENOENT
+				catch 0
+			break
+
+		try catch mdb_txn_begin this->env, NULL, flags, &this->txn
+		try catch mdb_dbi_open this->txn, NULL, 0, &this->dbi
+
+	finally
+
+@prime_db_close: void (prime_db_t* this)
+
+	mdb_env_close this->env

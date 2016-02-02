@@ -3,8 +3,11 @@
 #include "ansi.h"
 #include "lib.h"
 
+#include "commit.h"
 #include "console.h"
 #include "ls.h"
+
+#define streq(text1, text2)  (strcmp ((text1), (text2)) == 0)
 
 #define H(text) TT (BOLD (text) ":")
 #define Q(text) TT (CYAN ("'" text "'"))
@@ -70,8 +73,10 @@ exec_commands: void (int argc, char* argv[])
 
 	command: char* = argv[optind]
 
-	if (strcmp "ls", command) == 0
+	if   streq "ls", command
 		prime_ls /**/
+	else streq "commit", command
+		prime_commit /**/
 	else
 		catch EINVAL
 		console_error ("Unknown command " Q "%s"), command
