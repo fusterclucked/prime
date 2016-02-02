@@ -1,22 +1,27 @@
 #include <getopt.h>
 
-#include <embrace.h>
-
 #include "ansi.h"
+#include "lib.h"
+
 #include "console.h"
+#include "ls.h"
 
 #define H(text) TT (BOLD (text) ":")
 #define Q(text) TT (CYAN ("'" text "'"))
 
-@main: int (int argc, char* argv[])
+#define HELP_BRIEF
+	"Try " Q ("%s --help") " for all available commands and options"
 
-	success: bool = true
-	help: bool = false
+structdef (options)
+	help: bool
+/**/
+
+parse_options: void (options_t* options, int argc, char* argv[])
 
 	enum { OPT_HELP = 256 }
 
-	// suppress default getopt error messages
-	opterr = 0
+	options->help = false
+	opterr = 0 // suppress default getopt error messages
 
 	for ;;
 		switch getopt_long (argc, argv, "",
@@ -34,7 +39,7 @@
 			case '?':
 				break
 			default:
-				success = false
+				catch EINVAL
 				console_error "Unknown option " Q ("%s%s%s"),
 					optopt ? "-" : "",
 					optopt ? (char []){ optopt, '\0' } : "",
@@ -42,18 +47,49 @@
 			// fall through to OPT_HELP
 
 		case OPT_HELP:
-			help = true
+			options->help = true
 			break
 
 done:
-	if help
+	if options->help
 
-		if success
-			console_output H "Usage" \ " %s [option...]", argv[0]
-			console_output H "Options"
-			console_output "  -? --help  Display available options"
+		if errno
+			console_info HELP_BRIEF, argv[0]
 
 		else
-			console_info "Try " Q "%s --help" \ " for all available options", argv[0]
+			console_output H "Usage" \ " %s [command] [option...]", argv[0]
+			console_output H "Commands"
+			console_output   "  init       Create an empty repository"
+			console_output H "Options"
+			console_output   "  -? --help  Display usage and all available commands and options"
 
-	return !success
+exec_commands: void (int argc, char* argv[])
+
+	if optind >= argc
+		return
+
+	command: char* = argv[optind]
+
+	if (strcmp "ls", command) == 0
+		prime_ls /**/
+	else
+		catch EINVAL
+		console_error ("Unknown command " Q "%s"), command
+		console_info HELP_BRIEF, argv[0]
+		return
+
+	if errno
+		console_error ("%s " TT BLUE "[%i]"), (strerror errno), errno
+
+@main: int (int argc, char* argv[])
+
+	options: options_t
+
+	do
+		try parse_options (&options), argc, argv
+		unless options.help
+			try exec_commands argc, argv
+
+	finally
+
+	return errno

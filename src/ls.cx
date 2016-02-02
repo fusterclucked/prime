@@ -1,0 +1,40 @@
+#include <lmdb.h>
+
+#include "lib.h"
+
+#include "console.h"
+
+@prime_ls: void ()
+
+	env: MDB_env*
+
+	do
+		try catch mdb_env_create (&env)
+
+		if catch mdb_env_open env, ".prime", MDB_NOSUBDIR | MDB_RDONLY, 0644
+			if errno == ENOENT
+				catch 0
+			break
+
+		txn: MDB_txn*
+
+		try catch mdb_txn_begin env, NULL, 0, &txn
+
+		db: MDB_dbi
+
+		try catch mdb_dbi_open txn, NULL, 0, &db
+
+		cursor: MDB_cursor*
+
+		do
+			try catch mdb_cursor_open txn, db, &cursor
+
+			key: struct MDB_val
+
+			for ;;
+				try catch mdb_cursor_get cursor, &key, NULL, MDB_NEXT
+				console_output "%.*s", key.mv_size, key.mv_data
+
+		finally mdb_cursor_close cursor
+
+	finally mdb_env_close env
