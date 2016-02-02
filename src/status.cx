@@ -1,0 +1,57 @@
+#include "lib.h"
+
+#include "console.h"
+#include "db.h"
+#include "wd.h"
+
+@prime_status: void ()
+
+	db: prime_db_t
+
+	do
+		try prime_db_open (&db), MDB_RDONLY
+
+		wd: prime_wd_t
+
+		do
+			try prime_wd_open (&wd)
+
+			cursor: MDB_cursor* = NULL
+
+			do
+				try catch mdb_cursor_open db.txn, db.dbi, &cursor
+
+				current_db: struct MDB_val
+
+				try prime_db_read cursor, &current_db
+
+				path_db: char* = current_db.mv_data
+
+				entry_wd: FTSENT*
+
+				try prime_wd_read (&wd), &entry_wd
+
+				path_wd: char* = entry_wd ? entry_wd->fts_path : NULL
+
+				while (path_db) or (path_wd)
+
+					order: int = path_db ? (path_wd ? (strcmp path_db, path_wd) : -1) : +1
+
+					if order < 0
+						console_output "- %s", path_db
+					else order > 0
+						console_output "+ %s", path_wd
+
+					if order <= 0
+						try prime_db_read cursor, &current_db
+						path_db = current_db.mv_data
+
+					if order >= 0
+						try prime_wd_read (&wd), &entry_wd
+						path_wd = entry_wd ? entry_wd->fts_path : NULL
+
+			finally mdb_cursor_close cursor
+
+		finally prime_wd_close (&wd)
+
+	finally prime_db_close (&db)

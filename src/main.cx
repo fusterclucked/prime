@@ -6,6 +6,7 @@
 #include "commit.h"
 #include "console.h"
 #include "ls.h"
+#include "status.h"
 
 #define streq(text1, text2)  (strcmp ((text1), (text2)) == 0)
 
@@ -77,6 +78,8 @@ exec_commands: void (int argc, char* argv[])
 		prime_ls /**/
 	else streq "commit", command
 		prime_commit /**/
+	else streq "status", command
+		prime_status /**/
 	else
 		catch EINVAL
 		console_error ("Unknown command " Q "%s"), command

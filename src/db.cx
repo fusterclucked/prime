@@ -20,3 +20,14 @@
 @prime_db_close: void (prime_db_t* this)
 
 	mdb_env_close this->env
+
+@prime_db_read: void (MDB_cursor* cursor, struct MDB_val* current)
+
+	if catch mdb_cursor_get cursor, current, NULL, MDB_NEXT
+		if errno == MDB_NOTFOUND
+			// HACK restricts key to be non-null
+			// TODO once error handling relies on errno and not return values
+			// then the return value can be used to indicate end of data
+			// and allow null keys again
+			current->mv_data = NULL
+			catch 0

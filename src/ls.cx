@@ -23,8 +23,12 @@
 			current: struct MDB_val
 
 			for ;;
-				try catch mdb_cursor_get cursor, &current, NULL, MDB_NEXT
-				console_output "%.*s", current.mv_size, current.mv_data
+				try prime_db_read cursor, &current
+
+				unless current.mv_data
+					break
+
+				console_output "%s", current.mv_data
 
 			if errno == MDB_NOTFOUND
 				catch 0

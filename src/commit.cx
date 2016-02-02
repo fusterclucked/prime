@@ -6,6 +6,7 @@
 #include "lib.h"
 
 #include "db.h"
+#include "wd.h"
 
 @prime_commit: void ()
 
@@ -14,29 +15,20 @@
 	do
 		try prime_db_open (&db), 0
 
-		fts: FTS*
+		wd: prime_wd_t
 
 		do
-			try fts = fts_open (char* []){ ".", NULL }, 0, NULL
+			try prime_wd_open (&wd)
 
 			entry: FTSENT*
 
 			for ;;
-				try entry = fts_read fts
+				try prime_wd_read (&wd), &entry
 
 				unless entry
 					break
 
-				unless entry->fts_info == FTS_F
-					continue
-
-				name: char* = entry->fts_name
-
-				if name[0] == '.'
-					continue
-
-				path: char* = entry->fts_path
-				key: struct MDB_val = { .mv_size = (strlen path), .mv_data = path }
+				key: struct MDB_val = { .mv_size = entry->fts_pathlen + 1, .mv_data = entry->fts_path }
 				data: struct MDB_val = { .mv_size = entry->fts_statp->st_size }
 
 				try catch mdb_put db.txn, db.dbi, &key, &data, MDB_RESERVE
@@ -44,13 +36,13 @@
 				file: int = -1
 
 				do
-					try file = open name, O_RDONLY
+					try file = open entry->fts_name, O_RDONLY
 					try read file, data.mv_data, data.mv_size
 
 				finally close file
 
 			try catch mdb_txn_commit db.txn
 
-		finally fts_close fts
+		finally prime_wd_close (&wd)
 
 	finally prime_db_close (&db)

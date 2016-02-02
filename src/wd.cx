@@ -1,0 +1,17 @@
+#include <fts.h>
+
+#include "lib.h"
+
+@prime_wd_open: void (prime_wd_t* this)
+
+	this->fts = fts_open (char* []){ ".", NULL }, 0, NULL
+
+@prime_wd_close: void (prime_wd_t* this)
+
+	fts_close this->fts
+
+@prime_wd_read: void (prime_wd_t* this, FTSENT** entry)
+
+	do
+		try (*entry) = fts_read this->fts
+	until (not *entry) or ((*entry)->fts_info == FTS_F) and ((*entry)->fts_name[0] != '.')
