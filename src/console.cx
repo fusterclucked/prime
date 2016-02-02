@@ -1,0 +1,34 @@
+#include <stdio.h>
+
+#include "ansi.h"
+
+print: void (FILE* stream, char* format, va_list args)
+
+	vfprintf stream, format, args
+	fputs "\n", stream
+
+@console_output: void (char* format, ...)
+
+	args: va_list
+
+	va_start args, format
+	print stdout, format, args
+	va_end args
+
+@console_error: void (char* format, ...)
+
+	args: va_list
+
+	va_start args, format
+	fprintf stderr, TT(BOLD RED "✖") " "
+	print stderr, format, args
+	va_end args
+
+@console_info: void (char* format, ...)
+
+	args: va_list
+
+	va_start args, format
+	fprintf stderr, "  "
+	print stderr, format, args
+	va_end args
