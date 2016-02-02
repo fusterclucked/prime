@@ -1,0 +1,59 @@
+#include <getopt.h>
+
+#include <embrace.h>
+
+#include "ansi.h"
+#include "console.h"
+
+#define H(text) TT (BOLD (text) ":")
+#define Q(text) TT (CYAN ("'" text "'"))
+
+@main: int (int argc, char* argv[])
+
+	success: bool = true
+	help: bool = false
+
+	enum { OPT_HELP = 256 }
+
+	// suppress default getopt error messages
+	opterr = 0
+
+	for ;;
+		switch getopt_long (argc, argv, "",
+			(struct option []) {
+				{ "help", no_argument, NULL, OPT_HELP },
+				{  NULL,  0,           NULL, 0        }
+			} /*
+		*/, NULL)
+
+		case -1:
+			goto done
+
+		case '?':
+			switch optopt
+			case '?':
+				break
+			default:
+				success = false
+				console_error "Unknown option " Q ("%s%s%s"),
+					optopt ? "-" : "",
+					optopt ? (char []){ optopt, '\0' } : "",
+					optopt ? "" : argv[optind - 1]
+			// fall through to OPT_HELP
+
+		case OPT_HELP:
+			help = true
+			break
+
+done:
+	if help
+
+		if success
+			console_output H "Usage" \ " %s [option...]", argv[0]
+			console_output H "Options"
+			console_output "  -? --help  Display available options"
+
+		else
+			console_info "Try " Q "%s --help" \ " for all available options", argv[0]
+
+	return !success

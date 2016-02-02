@@ -1,0 +1,9 @@
+[submodule "lib/tramp"]
+	path = lib/tramp
+	url = https://github.com/sneakyassninja/tramp.git
+[submodule "lib/approve"]
+	path = lib/approve
+	url = https://github.com/fusterclucked/approve.git
+[submodule "lib/embrace"]
+	path = lib/embrace
+	url = https://github.com/fusterclucked/embrace.git
