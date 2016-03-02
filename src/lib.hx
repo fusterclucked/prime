@@ -15,3 +15,12 @@
 structdef (prime_error)
 	site: char*
 /**/
+
+// TODO not needed once prime_db is fully encapsulated
+#include <lmdb.h>
+
+structdef (prime_db)
+	env: MDB_env*
+	txn: MDB_txn*
+	dbi: MDB_dbi
+/**/

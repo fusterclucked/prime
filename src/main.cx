@@ -3,8 +3,11 @@
 #include "ansi.h"
 #include "lib.h"
 
+#include "commit.h"
 #include "console.h"
 #include "ls.h"
+
+#define streq(text1, text2)  (strcmp ((text1), (text2)) is 0)
 
 #define Q(text) TT(CYAN "'" text "'")
 
@@ -76,8 +79,13 @@ parse_commands: bool (int argc, char* argv[])
 	command: char* = argv[optind]
 	error: prime_error_t
 
-	if strcmp ("ls", command) is 0
+	if streq ("ls", command)
 		unless success = prime_ls (&error)
+			console_error "Failed to %s " TT(BLUE "[%i]"),
+				error.site, errno
+
+	else streq ("commit", command)
+		unless success = prime_commit (&error)
 			console_error "Failed to %s " TT(BLUE "[%i]"),
 				error.site, errno
 

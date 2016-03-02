@@ -3,35 +3,22 @@
 #include "lib.h"
 
 #include "console.h"
+#include "db.h"
 
 @prime_ls: bool (prime_error_t* error)
 
 	success: bool = false
-	env: MDB_env* = NULL
-	txn: MDB_txn* = NULL
-	db: MDB_dbi = NULL
+	db: prime_db_t = { .txn = NULL }
 	cursor: MDB_cursor* = NULL
 
-	if errno = mdb_env_create (&env)
-		error->site = "open database context"
+	unless prime_db_open (&db, MDB_RDONLY, error)
 		goto done
 
-	if errno = mdb_env_open (env, ".prime", MDB_NOSUBDIR | MDB_RDONLY, 0644)
-		if errno is ENOENT
-			success = true
-		else
-			error->site = "open database file"
+	unless db.txn
+		success = true
 		goto done
 
-	if errno = mdb_txn_begin (env, NULL, 0, &txn)
-		error->site = "open transaction"
-		goto done
-
-	if errno = mdb_dbi_open (txn, NULL, 0, &db)
-		error->site = "open database handle"
-		goto done
-
-	if errno = mdb_cursor_open (txn, db, &cursor)
+	if errno = mdb_cursor_open (db.txn, db.dbi, &cursor)
 		error->site = "open database cursor"
 		goto done
 
@@ -48,5 +35,5 @@
 
 done:
 	mdb_cursor_close cursor
-	mdb_env_close env
+	prime_db_close &db
 	return success

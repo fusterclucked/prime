@@ -1,0 +1,35 @@
+#include <lmdb.h>
+
+#include "lib.h"
+
+@prime_db_open: bool (prime_db_t* this, unsigned int flags, prime_error_t* error)
+
+	success: bool = false
+
+	if errno = mdb_env_create (&this->env)
+		error->site = "open database context"
+		goto done
+
+	if errno = mdb_env_open (this->env, ".prime", MDB_NOSUBDIR | flags, 0644)
+		if errno is ENOENT
+			success = true
+		else
+			error->site = "open database file"
+		goto done
+
+	if errno = mdb_txn_begin (this->env, NULL, flags, &this->txn)
+		error->site = "open transaction"
+		goto done
+
+	if errno = mdb_dbi_open (this->txn, NULL, 0, &this->dbi)
+		error->site = "open database handle"
+		goto done
+
+	success = true
+
+done:
+	return success
+
+@prime_db_close: void (prime_db_t* this)
+
+	mdb_env_close this->env

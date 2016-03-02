@@ -1,0 +1,74 @@
+#include <fcntl.h>
+#include <fts.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include "lib.h"
+
+#include "db.h"
+
+@prime_commit: bool (prime_error_t* error)
+
+	success: bool = false
+	db: prime_db_t
+	fts: FTS* = NULL
+
+	unless prime_db_open (&db, 0, error)
+		goto done
+
+	unless fts = fts_open ((char* []){ ".", NULL }, 0, NULL)
+		error->site = "open directory listing"
+		goto done
+
+	entry: FTSENT*
+	file: int = -1
+
+	while errno = 0, entry = fts_read (fts)
+
+		if errno
+			error->site = "access directory entry"
+			goto done
+
+		unless entry->fts_info is FTS_F
+			continue
+
+		name: char* = entry->fts_name
+
+		if name[0] is '.'
+			continue
+
+		path: char* = entry->fts_path
+		key: struct MDB_val = { .mv_size = strlen (path), .mv_data = path }
+		data: struct MDB_val = { .mv_size = entry->fts_statp->st_size }
+
+		if errno = mdb_put (db.txn, db.dbi, &key, &data, MDB_RESERVE)
+			error->site = "allocate storage"
+			goto done
+
+		if 0 > (file = open (name, O_RDONLY))
+			error->site = "open file"
+			goto done
+
+		if 0 > read (file, data.mv_data, data.mv_size)
+			error->site = "copy file contents"
+			goto done
+
+		if 0 > close (file)
+			error->site = "close file"
+			goto done
+
+	if errno
+		error->site = "read directory entry"
+		goto done
+
+	if errno = mdb_txn_commit (db.txn)
+		error->site = "commit transaction"
+		goto done
+
+	success = true
+
+done:
+	close file
+	fts_close fts
+	prime_db_close &db
+	return success
