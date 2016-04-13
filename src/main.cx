@@ -6,6 +6,7 @@
 #include "commit.h"
 #include "console.h"
 #include "ls.h"
+#include "status.h"
 
 #define streq(text1, text2)  (strcmp ((text1), (text2)) is 0)
 
@@ -86,6 +87,11 @@ parse_commands: bool (int argc, char* argv[])
 
 	else streq ("commit", command)
 		unless success = prime_commit (&error)
+			console_error "Failed to %s " TT(BLUE "[%i]"),
+				error.site, errno
+
+	else streq ("status", command)
+		unless success = prime_status (&error)
 			console_error "Failed to %s " TT(BLUE "[%i]"),
 				error.site, errno
 

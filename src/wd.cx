@@ -1,0 +1,37 @@
+#include <fts.h>
+
+#include "lib.h"
+
+@prime_wd_open: bool (prime_wd_t* this, prime_error_t* error)
+
+	unless this->fts = fts_open ((char* []){ ".", NULL }, 0, NULL)
+		error->site = "open directory listing"
+		return false
+
+	return true
+
+@prime_wd_close: void (prime_wd_t* this)
+
+	fts_close this->fts
+
+@prime_wd_read: bool (prime_wd_t* this, FTSENT** entry, prime_error_t* error)
+
+	while errno = 0, *entry = fts_read (this->fts)
+
+		if errno
+			error->site = "access directory entry"
+			return false
+
+		unless (*entry)->fts_info is FTS_F
+			continue
+
+		if (*entry)->fts_name[0] is '.'
+			continue
+
+		break
+
+	if errno
+		error->site = "read directory entry"
+		return false
+
+	return true

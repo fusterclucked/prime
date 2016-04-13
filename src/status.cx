@@ -1,0 +1,112 @@
+#include "lib.h"
+
+#include "console.h"
+#include "db.h"
+#include "wd.h"
+
+dup_as_cstr: char* (struct MDB_val* current)
+
+	unless current->mv_data
+		return NULL
+
+	path: char* = malloc (current->mv_size + 1)
+	memcpy path, current->mv_data, current->mv_size
+	path [current->mv_size] = '\0'
+	return path
+
+@prime_status: bool (prime_error_t* error)
+
+	success: bool = false
+	db: prime_db_t
+	wd: prime_wd_t
+
+	unless prime_db_open (&db, MDB_RDONLY, error)
+		goto done
+
+	unless prime_wd_open (&wd, error)
+		goto done
+
+	cursor: MDB_cursor* = NULL
+
+	if errno = mdb_cursor_open (db.txn, db.dbi, &cursor)
+		error->site = "open database cursor"
+		goto done
+
+	current_db: struct MDB_val
+
+	unless prime_db_read (cursor, &current_db, error)
+		goto done
+
+	path_db: char* = dup_as_cstr (&current_db)
+
+	entry_wd: FTSENT*
+
+	unless prime_wd_read (&wd, &entry_wd, error)
+		goto done
+
+	path_wd: char* = entry_wd ? entry_wd->fts_path : NULL
+
+	for ;;
+
+		if path_db
+
+			if path_wd
+
+				result: int = strcmp (path_db, path_wd)
+
+				if 0 > result
+					console_output "- %s", path_db
+
+					unless prime_db_read (cursor, &current_db, error)
+						goto done
+
+					path_db = dup_as_cstr (&current_db)
+
+				else 0 < result
+					console_output "+ %s", path_wd
+
+					unless prime_wd_read (&wd, &entry_wd, error)
+						goto done
+
+					path_wd = entry_wd ? entry_wd->fts_path : NULL
+
+				else
+
+					unless prime_db_read (cursor, &current_db, error)
+						goto done
+
+					unless prime_wd_read (&wd, &entry_wd, error)
+						goto done
+
+					path_db = dup_as_cstr (&current_db)
+					path_wd = entry_wd ? entry_wd->fts_path : NULL
+
+			else
+
+				console_output "- %s", path_db
+
+				unless prime_db_read (cursor, &current_db, error)
+					goto done
+
+				path_db = dup_as_cstr (&current_db)
+
+		else
+
+			unless path_wd
+				break
+
+			else
+				console_output "+ %s", path_wd
+
+				unless prime_wd_read (&wd, &entry_wd, error)
+					goto done
+
+				path_wd = entry_wd ? entry_wd->fts_path : NULL
+
+	success = true
+
+done:
+	prime_wd_close &wd
+	mdb_cursor_close cursor
+	prime_db_close &db
+	return success

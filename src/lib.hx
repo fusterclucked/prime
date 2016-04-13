@@ -24,3 +24,10 @@ structdef (prime_db)
 	txn: MDB_txn*
 	dbi: MDB_dbi
 /**/
+
+// TODO not needed once prime_wd is fully encapsulated
+#include <fts.h>
+
+structdef (prime_wd)
+	fts: FTS*
+/**/

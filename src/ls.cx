@@ -22,13 +22,12 @@
 		error->site = "open database cursor"
 		goto done
 
-	key: struct MDB_val
+	current: struct MDB_val
 
-	until errno = mdb_cursor_get (cursor, &key, NULL, MDB_NEXT)
-		console_output "%.*s", key.mv_size, key.mv_data
+	while prime_db_read (cursor, &current, error) and current.mv_data
+		console_output "%.*s", current.mv_size, current.mv_data
 
-	unless errno is MDB_NOTFOUND
-		error->site = "read current item"
+	if errno
 		goto done
 
 	success = true
